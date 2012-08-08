@@ -11,9 +11,6 @@ function PullStream() {
   Stream.apply(this);
   this.readable = false;
   this.writable = true;
-  this._buffer = new Buffer(10 * 1024 * 1024);
-  this._bufferWriteIdx = 0;
-  this._bufferReadIdx = 0;
   this._emitter = new events.EventEmitter();
 }
 inherits(PullStream, Stream);
@@ -28,23 +25,21 @@ PullStream.prototype.end = function (data) {
 
 PullStream.prototype.process = function (data, end) {
   if (data) {
-    data.copy(this._buffer, this._bufferWriteIdx);
-    this._bufferWriteIdx += data.length;
-    this._emitter.emit('newdata');
+    this._emitter.emit('data', data);
   }
   if (end) {
-    this._end = true;
-    this._emitter.emit('end');
+    this._emitter.emit('end', data);
   }
 };
 
 PullStream.prototype.pull = over([
   [over.number, over.func, function (len, callback) {
     var self = this;
-    self._emitter.on('newdata', dataOrEnd.bind(self, 'newdata'));
+    var resultBuffer = new Buffer(len);
+    self._emitter.on('data', dataOrEnd.bind(self, 'data'));
     self._emitter.on('end', dataOrEnd.bind(self, 'end'));
 
-    function dataOrEnd(evt) {
+    function dataOrEnd(evt, data) {
       if (self._bufferWriteIdx - self._bufferReadIdx > len) {
         var result = this._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
         self._bufferReadIdx += len;
@@ -58,7 +53,7 @@ PullStream.prototype.pull = over([
   }],
   [over.func, function (callback) {
     var self = this;
-    self._emitter.on('end', function () {
+    self._emitter.on('end', function (data) {
       var len = self._bufferWriteIdx - self._bufferReadIdx;
       var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
       self._bufferReadIdx += len;
@@ -81,13 +76,13 @@ PullStream.prototype.pipe = over([
 
 PullStream.prototype._pipe = function (len, destStream) {
   var self = this;
-  this._emitter.on('newdata', dataOrEnd.bind(this, 'newdata'));
+  this._emitter.on('data', dataOrEnd.bind(this, 'data'));
   this._emitter.on('end', dataOrEnd.bind(this, 'end'));
   process.nextTick(function () {
-    dataOrEnd('newdata');
+    dataOrEnd('data');
   });
 
-  function dataOrEnd(evt) {
+  function dataOrEnd(evt, data) {
     var lenToSend = Math.min(self._bufferWriteIdx - self._bufferReadIdx, len);
     if (lenToSend > 0) {
       var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + lenToSend);
