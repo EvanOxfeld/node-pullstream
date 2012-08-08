@@ -127,7 +127,6 @@ test("read from file", function (t) {
 
   var ps = new PullStream();
   ps.on('end', function () {
-    sourceStream.destroy();
     t.end();
   });
 

@@ -47,6 +47,10 @@ PullStream.prototype.pull = over([
 ]);
 
 PullStream.prototype._pull = function (len, callback) {
+  if (len === 0) {
+    return callback(null, new Buffer(0));
+  }
+
   var self = this;
   var lenLeft = len;
   var resultBuffer = new streamBuffers.WritableStreamBuffer({
@@ -89,6 +93,10 @@ PullStream.prototype.pipe = over([
 ]);
 
 PullStream.prototype._pipe = function (len, destStream) {
+  if (len === 0) {
+    return callback(null, new Buffer(0));
+  }
+
   var self = this;
   this._emitter.on('data', dataOrEnd.bind(this, 'data'));
   this._emitter.on('end', dataOrEnd.bind(this, 'end'));
