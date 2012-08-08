@@ -6,6 +6,7 @@ var inherits = require("util").inherits;
 var Stream = require('stream').Stream;
 var over = require('over');
 var events = require("events");
+var streamBuffers = require("stream-buffers");
 
 function PullStream() {
   Stream.apply(this);
@@ -34,35 +35,46 @@ PullStream.prototype.process = function (data, end) {
 
 PullStream.prototype.pull = over([
   [over.number, over.func, function (len, callback) {
-    var self = this;
-    var resultBuffer = new Buffer(len);
-    self._emitter.on('data', dataOrEnd.bind(self, 'data'));
-    self._emitter.on('end', dataOrEnd.bind(self, 'end'));
-
-    function dataOrEnd(evt, data) {
-      if (self._bufferWriteIdx - self._bufferReadIdx > len) {
-        var result = this._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
-        self._bufferReadIdx += len;
-        self._emitter.removeAllListeners();
-        callback(null, result);
-        if (evt === 'end') {
-          self.emit('end');
-        }
-      }
-    }
+    this._pull(len, callback);
   }],
   [over.func, function (callback) {
-    var self = this;
-    self._emitter.on('end', function (data) {
-      var len = self._bufferWriteIdx - self._bufferReadIdx;
-      var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
-      self._bufferReadIdx += len;
-      self._emitter.removeAllListeners();
-      callback(null, result);
-      self.emit('end');
-    });
+    this._pull(null, callback);
   }]
 ]);
+
+PullStream.prototype._pull = function (len, callback) {
+  var self = this;
+  var lenLeft = len;
+  var resultBuffer = new streamBuffers.WritableStreamBuffer({
+    initialSize: len || streamBuffers.DEFAULT_INITIAL_SIZE
+  });
+  self._emitter.on('data', dataOrEnd.bind(self, 'data'));
+  self._emitter.on('end', dataOrEnd.bind(self, 'end'));
+
+  function dataOrEnd(evt, data) {
+    if (data) {
+      var lenToCopy;
+      if (len) {
+        lenToCopy = Math.min(data.length, lenLeft);
+      } else {
+        lenToCopy = data.length;
+      }
+      resultBuffer.write(data.slice(0, lenToCopy));
+      lenLeft -= lenToCopy;
+    }
+    if (lenLeft === 0 || evt === 'end') {
+      self._emitter.removeAllListeners();
+      callback(null, resultBuffer.getContents());
+      if (data && lenToCopy < data.length) {
+        process.nextTick(function () {
+          self.process(data.slice(lenToCopy), evt === 'end');
+        });
+      } else if (evt === 'end') {
+        self.emit('end');
+      }
+    }
+  }
+};
 
 PullStream.prototype.pipe = over([
   [over.number, over.object, function (len, destStream) {
@@ -78,24 +90,19 @@ PullStream.prototype._pipe = function (len, destStream) {
   var self = this;
   this._emitter.on('data', dataOrEnd.bind(this, 'data'));
   this._emitter.on('end', dataOrEnd.bind(this, 'end'));
-  process.nextTick(function () {
-    dataOrEnd('data');
-  });
 
   function dataOrEnd(evt, data) {
-    var lenToSend = Math.min(self._bufferWriteIdx - self._bufferReadIdx, len);
-    if (lenToSend > 0) {
-      var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + lenToSend);
-      self._bufferReadIdx += lenToSend;
-      var newLen = len - lenToSend;
-      destStream.write(result);
+    var lenToWrite = Math.min(data.length, len);
+    destStream.write(data.slice(0, lenToWrite));
+    len -= lenToWrite;
+    if (len === 0 || evt === 'end') {
       self._emitter.removeAllListeners();
-      if (newLen === 0) {
-        destStream.end();
-      } else {
-        self._pipe(newLen, destStream);
-      }
-      if (evt === 'end') {
+      destStream.end();
+      if (data && lenToWrite < data.length) {
+        process.nextTick(function () {
+          self.process(data.slice(lenToWrite), evt === 'end');
+        });
+      } else if (evt === 'end') {
         self.emit('end');
       }
     }
