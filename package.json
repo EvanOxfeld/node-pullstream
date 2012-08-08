@@ -1,0 +1,14 @@
+{
+  "name": "pullstream",
+  "version": "0.0.1",
+  "description": "A stream you can pull data from.",
+  "main": "pullstream.js",
+  "scripts": {
+    "test": "./node_modules/.bin/tap --stderr ./test/"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "tap": "~0.3.0",
+    "stream-buffers": "~0.2.3"
+  }
+}
