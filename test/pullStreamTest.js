@@ -1,6 +1,8 @@
 'use strict';
 
 var test = require('tap').test;
+var fs = require("fs");
+var path = require("path");
 var streamBuffers = require("stream-buffers");
 var PullStream = require('../');
 
@@ -102,6 +104,34 @@ test("two length pulls", function (t) {
     chunkSize: 1000
   });
   sourceStream.put("Hello World!");
+
+  sourceStream.pipe(ps);
+
+  ps.pull('Hello'.length, function (err, data) {
+    if (err) {
+      t.fail(err);
+    }
+    t.equal('Hello', data.toString());
+
+    ps.pull(' World!'.length, function (err, data) {
+      if (err) {
+        t.fail(err);
+      }
+      t.equal(' World!', data.toString());
+    });
+  });
+});
+
+test("read from file", function (t) {
+  t.plan(2);
+
+  var ps = new PullStream();
+  ps.on('end', function () {
+    sourceStream.destroy();
+    t.end();
+  });
+
+  var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
 
   sourceStream.pipe(ps);
 

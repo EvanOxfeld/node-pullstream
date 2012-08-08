@@ -70,9 +70,7 @@ PullStream.prototype._pull = function (len, callback) {
       self._emitter.removeAllListeners();
       callback(null, resultBuffer.getContents() || new Buffer(0));
       if (data && lenToCopy < data.length) {
-        process.nextTick(function () {
-          self.process(data.slice(lenToCopy), evt === 'end');
-        });
+        self.process(data.slice(lenToCopy), evt === 'end');
       } else if (evt === 'end') {
         self.emit('end');
       }
