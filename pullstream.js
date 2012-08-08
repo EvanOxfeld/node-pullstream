@@ -29,7 +29,11 @@ PullStream.prototype.process = function (data, end) {
     this._emitter.emit('data', data);
   }
   if (end) {
-    this._emitter.emit('end', data);
+    if (this._emitter.listeners('end').length === 0) {
+      this.emit('end');
+    } else {
+      this._emitter.emit('end', data);
+    }
   }
 };
 

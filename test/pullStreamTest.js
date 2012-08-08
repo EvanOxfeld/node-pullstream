@@ -87,3 +87,35 @@ test("source sending all data at once", function (t) {
     ps.pipe(' World'.length, writableStream);
   });
 });
+
+test("two length pulls", function (t) {
+  t.plan(2);
+
+  var ps = new PullStream();
+  ps.on('end', function () {
+    sourceStream.destroy();
+    t.end();
+  });
+
+  var sourceStream = new streamBuffers.ReadableStreamBuffer({
+    frequency: 0,
+    chunkSize: 1000
+  });
+  sourceStream.put("Hello World!");
+
+  sourceStream.pipe(ps);
+
+  ps.pull('Hello'.length, function (err, data) {
+    if (err) {
+      t.fail(err);
+    }
+    t.equal('Hello', data.toString());
+
+    ps.pull(' World!'.length, function (err, data) {
+      if (err) {
+        t.fail(err);
+      }
+      t.equal(' World!', data.toString());
+    });
+  });
+});
