@@ -7,9 +7,11 @@
     "test": "./node_modules/.bin/tap --stderr --timeout=5 ./test/"
   },
   "license": "MIT",
-  "devDependencies": {
-    "tap": "~0.3.0",
+  "dependencies": {
     "stream-buffers": "~0.2.3"
+  },
+  "devDependencies": {
+    "tap": "~0.3.0"
   },
   "dependencies": {
     "over": "0.0.2"

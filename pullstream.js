@@ -6,14 +6,12 @@ var inherits = require("util").inherits;
 var Stream = require('stream').Stream;
 var over = require('over');
 var events = require("events");
+var streamBuffers = require("stream-buffers");
 
 function PullStream() {
   Stream.apply(this);
   this.readable = false;
   this.writable = true;
-  this._buffer = new Buffer(10 * 1024 * 1024);
-  this._bufferWriteIdx = 0;
-  this._bufferReadIdx = 0;
   this._emitter = new events.EventEmitter();
 }
 inherits(PullStream, Stream);
@@ -28,46 +26,55 @@ PullStream.prototype.end = function (data) {
 
 PullStream.prototype.process = function (data, end) {
   if (data) {
-    data.copy(this._buffer, this._bufferWriteIdx);
-    this._bufferWriteIdx += data.length;
-    this._emitter.emit('newdata');
+    this._emitter.emit('data', data);
   }
   if (end) {
-    this._end = true;
-    this._emitter.emit('end');
+    this._emitter.emit('end', data);
   }
 };
 
 PullStream.prototype.pull = over([
   [over.number, over.func, function (len, callback) {
-    var self = this;
-    self._emitter.on('newdata', dataOrEnd.bind(self, 'newdata'));
-    self._emitter.on('end', dataOrEnd.bind(self, 'end'));
-
-    function dataOrEnd(evt) {
-      if (self._bufferWriteIdx - self._bufferReadIdx > len) {
-        var result = this._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
-        self._bufferReadIdx += len;
-        self._emitter.removeAllListeners();
-        callback(null, result);
-        if (evt === 'end') {
-          self.emit('end');
-        }
-      }
-    }
+    this._pull(len, callback);
   }],
   [over.func, function (callback) {
-    var self = this;
-    self._emitter.on('end', function () {
-      var len = self._bufferWriteIdx - self._bufferReadIdx;
-      var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + len);
-      self._bufferReadIdx += len;
-      self._emitter.removeAllListeners();
-      callback(null, result);
-      self.emit('end');
-    });
+    this._pull(null, callback);
   }]
 ]);
+
+PullStream.prototype._pull = function (len, callback) {
+  var self = this;
+  var lenLeft = len;
+  var resultBuffer = new streamBuffers.WritableStreamBuffer({
+    initialSize: len || streamBuffers.DEFAULT_INITIAL_SIZE
+  });
+  self._emitter.on('data', dataOrEnd.bind(self, 'data'));
+  self._emitter.on('end', dataOrEnd.bind(self, 'end'));
+
+  function dataOrEnd(evt, data) {
+    if (data) {
+      var lenToCopy;
+      if (len) {
+        lenToCopy = Math.min(data.length, lenLeft);
+      } else {
+        lenToCopy = data.length;
+      }
+      resultBuffer.write(data.slice(0, lenToCopy));
+      lenLeft -= lenToCopy;
+    }
+    if (lenLeft === 0 || evt === 'end') {
+      self._emitter.removeAllListeners();
+      callback(null, resultBuffer.getContents());
+      if (data && lenToCopy < data.length) {
+        process.nextTick(function () {
+          self.process(data.slice(lenToCopy), evt === 'end');
+        });
+      } else if (evt === 'end') {
+        self.emit('end');
+      }
+    }
+  }
+};
 
 PullStream.prototype.pipe = over([
   [over.number, over.object, function (len, destStream) {
@@ -81,26 +88,21 @@ PullStream.prototype.pipe = over([
 
 PullStream.prototype._pipe = function (len, destStream) {
   var self = this;
-  this._emitter.on('newdata', dataOrEnd.bind(this, 'newdata'));
+  this._emitter.on('data', dataOrEnd.bind(this, 'data'));
   this._emitter.on('end', dataOrEnd.bind(this, 'end'));
-  process.nextTick(function () {
-    dataOrEnd('newdata');
-  });
 
-  function dataOrEnd(evt) {
-    var lenToSend = Math.min(self._bufferWriteIdx - self._bufferReadIdx, len);
-    if (lenToSend > 0) {
-      var result = self._buffer.slice(self._bufferReadIdx, self._bufferReadIdx + lenToSend);
-      self._bufferReadIdx += lenToSend;
-      var newLen = len - lenToSend;
-      destStream.write(result);
+  function dataOrEnd(evt, data) {
+    var lenToWrite = Math.min(data.length, len);
+    destStream.write(data.slice(0, lenToWrite));
+    len -= lenToWrite;
+    if (len === 0 || evt === 'end') {
       self._emitter.removeAllListeners();
-      if (newLen === 0) {
-        destStream.end();
-      } else {
-        self._pipe(newLen, destStream);
-      }
-      if (evt === 'end') {
+      destStream.end();
+      if (data && lenToWrite < data.length) {
+        process.nextTick(function () {
+          self.process(data.slice(lenToWrite), evt === 'end');
+        });
+      } else if (evt === 'end') {
         self.emit('end');
       }
     }
