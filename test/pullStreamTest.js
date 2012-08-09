@@ -231,9 +231,10 @@ module.exports = {
 
       ps.pull(1, function (err, data) {
         if (err) {
+          t.ok(err, 'should get an error');
           return; // ok
         }
-        return t.done('should get an error');
+        return t.done(new Error('should get an error'));
       });
     });
   },
@@ -271,7 +272,7 @@ module.exports = {
         if (err) {
           return t.done(err);
         }
-        t.ok(isResumed, 'isResumed');
+        t.ok(isResumed, 'Stream is resumed');
         t.equal('World!', data.toString());
 
         ps.pull(10, function (err, data) {

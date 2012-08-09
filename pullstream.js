@@ -14,7 +14,7 @@ function PullStream() {
   this.readable = false;
   this.writable = true;
   this._emitter = new events.EventEmitter();
-  this._pauseBuffer = new streamBuffers.WritableStreamBuffer();
+  this._buffer = new streamBuffers.WritableStreamBuffer();
   this._paused = false;
   this._positionInStream = 0;
   this._recvEnd = false;
@@ -39,43 +39,29 @@ function PullStream() {
 inherits(PullStream, Stream);
 
 PullStream.prototype._sendPauseBuffer = function () {
-  var pauseData = this._pauseBuffer.getContents();
-  this.process(pauseData);
+  this.process();
 };
 
 PullStream.prototype.write = function (data) {
-  this.process(data);
+  this._buffer.write(data);
+  this.process();
   return true;
 };
 
 PullStream.prototype.end = function (data) {
   this._recvEnd = true;
   if (data) {
-    this.process(data);
-  } else if (!this._paused) {
-    if (this._emitter.listeners('end').length > 0) {
-      this._emitter.emit('end');
-    } else {
-      this.emit('end');
-    }
+    this._buffer.write(data);
   }
+  this.process();
   return true;
 };
 
 PullStream.prototype.process = function (data) {
-  if (data) {
-    if (this._paused) {
-      this._pauseBuffer.write(data);
-    } else {
-      this._emitter.emit('data', data);
-    }
-  } else if (!data && this._recvEnd) {
-    if (this._emitter.listeners('end').length === 0) {
-      this.eof = true;
-      this.emit('end');
-    } else {
-      this._emitter.emit('end');
-    }
+  if (this._recvEnd && this._emitter.listeners('data').length === 0) {
+    this.emit('end');
+  } else {
+    this._emitter.emit('data');
   }
 };
 
@@ -94,46 +80,25 @@ PullStream.prototype._pull = function (len, callback) {
   }
 
   var self = this;
-  var lenLeft = len;
-  var resultBuffer = new streamBuffers.WritableStreamBuffer({
-    initialSize: len || streamBuffers.DEFAULT_INITIAL_SIZE
-  });
-  self._emitter.on('data', dataOrEnd.bind(self, 'data'));
-  self._emitter.on('end', dataOrEnd.bind(self, 'end'));
-  if (this._recvEnd) {
-    dataOrEnd('end');
-  }
+  self._emitter.on('data', dataOrEnd);
+  dataOrEnd();
 
-  function dataOrEnd(evt, data) {
-    if (data) {
-      var lenToCopy;
-      if (len) {
-        lenToCopy = Math.min(data.length, lenLeft);
-      } else {
-        lenToCopy = data.length;
-      }
-      resultBuffer.write(data.slice(0, lenToCopy));
-      if (len) {
-        lenLeft -= lenToCopy;
-      }
+  function dataOrEnd() {
+    if (self._paused) {
+      return;
     }
-    if ((lenLeft === 0 || lenLeft === null) || evt === 'end') {
+
+    if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
       self._emitter.removeAllListeners();
-      var resultBufferContents = resultBuffer.getContents();
-      if (!resultBufferContents && self._recvEnd) {
-        callback(new Error("End of Stream"));
-      } else {
-        resultBufferContents.posInStream = self._positionInStream;
-        self._positionInStream += resultBufferContents.length;
-        callback(null, resultBufferContents);
-      }
-      if (data && lenToCopy < data.length) {
-        //process.nextTick(function () {
-          self.process(data.slice(lenToCopy));
-        //});
-      } else if (evt === 'end') {
+      var results = self._buffer.getContents(len);
+      callback(null, results);
+
+      if (self._recvEnd && self._buffer.size() === 0) {
         self.emit('end');
       }
+    } else if (self._recvEnd && self._buffer.size() === 0) {
+      callback(new Error('End of Stream'));
+      self.emit('end');
     }
   }
 };
@@ -154,26 +119,29 @@ PullStream.prototype._pipe = function (len, destStream) {
   }
 
   var self = this;
-  this._emitter.on('data', dataOrEnd.bind(this, 'data'));
-  this._emitter.on('end', dataOrEnd.bind(this, 'end'));
+  var lenLeft = len;
+  this._emitter.on('data', dataOrEnd);
+  dataOrEnd();
 
-  function dataOrEnd(evt, data) {
-    var lenToWrite = Math.min(data.length, len);
-    var bufferToWrite = data.slice(0, lenToWrite);
-    bufferToWrite.posInStream = self._positionInStream;
-    self._positionInStream += bufferToWrite.length;
-    destStream.write(bufferToWrite);
-    len -= lenToWrite;
-    if (len === 0 || evt === 'end') {
+  function dataOrEnd() {
+    if (self._paused) {
+      return;
+    }
+
+    var lenToRemove = Math.min(self._buffer.size(), lenLeft);
+    if (lenToRemove > 0) {
+      var results = self._buffer.getContents(lenToRemove);
+      destStream.write(results);
+      lenLeft -= lenToRemove;
+    }
+
+    if (lenLeft === 0) {
       self._emitter.removeAllListeners();
       destStream.end();
-      if (data && lenToWrite < data.length) {
-        process.nextTick(function () {
-          self.process(data.slice(lenToWrite));
-        });
-      } else if (evt === 'end') {
-        self.emit('end');
-      }
+    }
+
+    if (self._recvEnd && self._buffer.size() === 0) {
+      self.emit('end');
     }
   }
 };
