@@ -66,7 +66,7 @@ PullStream.prototype.process = function (data, end) {
       if (this._emitter.listeners('end').length === 0) {
         this.emit('end');
       } else {
-        this._emitter.emit('end', data);
+        this._emitter.emit('end');
       }
     }
   }
@@ -117,7 +117,9 @@ PullStream.prototype._pull = function (len, callback) {
         callback(null, resultBufferContents);
       }
       if (data && lenToCopy < data.length) {
-        self.process(data.slice(lenToCopy), evt === 'end');
+        process.nextTick(function () {
+          self.process(data.slice(lenToCopy), evt === 'end');
+        });
       } else if (evt === 'end') {
         self.emit('end');
       }

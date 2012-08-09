@@ -266,6 +266,7 @@ test("pause/resume using writes", function (t) {
     t.end();
   });
   ps.write(new Buffer('Hello World!', 'utf8'));
+  ps.end();
   process.nextTick(function () {
     isResumed = true;
     ps.resume();
@@ -308,4 +309,5 @@ test("pause/resume using writes pause after first pull", function (t) {
     });
   });
   ps.write(new Buffer('Hello World!', 'utf8'));
+  ps.end();
 });
