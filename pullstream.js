@@ -17,7 +17,7 @@ function PullStream() {
   this._pauseBuffer = new streamBuffers.WritableStreamBuffer();
   this._paused = false;
   this._positionInStream = 0;
-  this._end = false;
+  this.eof = false;
   this.on('pipe', function (srcStream) {
     if (srcStream.pause) {
       self.pause = function () {
@@ -39,7 +39,7 @@ inherits(PullStream, Stream);
 
 PullStream.prototype._sendPauseBuffer = function () {
   var pauseData = this._pauseBuffer.getContents();
-  this.process(pauseData, this._end);
+  this.process(pauseData, this.eof);
 };
 
 PullStream.prototype.write = function (data) {
@@ -61,7 +61,7 @@ PullStream.prototype.process = function (data, end) {
     }
   }
   if (end) {
-    this._end = true;
+    this.eof = true;
     if (!this._paused) {
       if (this._emitter.listeners('end').length === 0) {
         this.emit('end');
@@ -108,7 +108,7 @@ PullStream.prototype._pull = function (len, callback) {
     if (lenLeft === 0 || evt === 'end') {
       self._emitter.removeAllListeners();
       var resultBufferContents = resultBuffer.getContents();
-      if (!resultBufferContents && self._end) {
+      if (!resultBufferContents && self.eof) {
         callback(new Error("End of Stream"));
       } else {
         resultBufferContents = resultBufferContents || new Buffer(0);
