@@ -149,6 +149,40 @@ test("read from file", function (t) {
   });
 });
 
+test("read from file pipe pause/resume", function (t) {
+  t.plan(3);
+
+  var ps = new PullStream();
+
+  var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
+
+  sourceStream.pipe(ps);
+
+  ps.pause();
+  ps.pull('Hello'.length, function (err, data) {
+    if (err) {
+      return t.fail(err);
+    }
+    t.equal('Hello', data.toString());
+
+    ps.pull(' World!'.length, function (err, data) {
+      if (err) {
+        return t.fail(err);
+      }
+      t.equal(' World!', data.toString());
+
+      ps.pull(5, function (err, data) {
+        t.ok(err, 'end of file should happen');
+        return t.end();
+      });
+    });
+  });
+
+  process.nextTick(function () {
+    ps.resume();
+  });
+});
+
 test("pause/resume", function (t) {
   t.plan(2);
 
@@ -239,7 +273,7 @@ test("pause/resume using writes", function (t) {
 });
 
 test("pause/resume using writes pause after first pull", function (t) {
-  t.plan(3);
+  t.plan(4);
 
   var isResumed = false;
   var ps = new PullStream();
@@ -255,6 +289,18 @@ test("pause/resume using writes pause after first pull", function (t) {
       }
       t.ok(isResumed, 'isResumed');
       t.equal('World!', data.toString());
+
+      ps.pull(10, function (err, data) {
+        if (err) {
+          t.ok(err, 'should be an error');
+          return t.end(); // good
+        }
+        return t.fail('should be end of file');
+      });
+
+      process.nextTick(function () {
+        ps.end();
+      });
     });
     process.nextTick(function () {
       isResumed = true;

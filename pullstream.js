@@ -16,6 +16,8 @@ function PullStream() {
   this._emitter = new events.EventEmitter();
   this._pauseBuffer = new streamBuffers.WritableStreamBuffer();
   this._paused = false;
+  this._positionInStream = 0;
+  this._end = false;
   this.on('pipe', function (srcStream) {
     if (srcStream.pause) {
       self.pause = function () {
@@ -109,7 +111,10 @@ PullStream.prototype._pull = function (len, callback) {
       if (!resultBufferContents && self._end) {
         callback(new Error("End of Stream"));
       } else {
-        callback(null, resultBufferContents || new Buffer(0));
+        resultBufferContents = resultBufferContents || new Buffer(0);
+        resultBufferContents.posInStream = self._positionInStream;
+        self._positionInStream += resultBufferContents.length;
+        callback(null, resultBufferContents);
       }
       if (data && lenToCopy < data.length) {
         self.process(data.slice(lenToCopy), evt === 'end');
@@ -141,7 +146,10 @@ PullStream.prototype._pipe = function (len, destStream) {
 
   function dataOrEnd(evt, data) {
     var lenToWrite = Math.min(data.length, len);
-    destStream.write(data.slice(0, lenToWrite));
+    var bufferToWrite = data.slice(0, lenToWrite);
+    bufferToWrite.posInStream = self._positionInStream;
+    self._positionInStream += bufferToWrite.length;
+    destStream.write(bufferToWrite);
     len -= lenToWrite;
     if (len === 0 || evt === 'end') {
       self._emitter.removeAllListeners();
