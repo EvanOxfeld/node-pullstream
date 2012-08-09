@@ -279,7 +279,7 @@ module.exports = {
             t.ok(err, 'should be an error');
             return t.done(); // good
           }
-          return t.done('should be end of file');
+          return t.done(new Error('should be end of file'));
         });
       });
       setTimeout(function () {

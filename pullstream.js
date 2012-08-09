@@ -17,6 +17,7 @@ function PullStream() {
   this._pauseBuffer = new streamBuffers.WritableStreamBuffer();
   this._paused = false;
   this._positionInStream = 0;
+  this._recvEnd = false;
   this.eof = false;
   this.on('pipe', function (srcStream) {
     if (srcStream.pause) {
@@ -39,35 +40,41 @@ inherits(PullStream, Stream);
 
 PullStream.prototype._sendPauseBuffer = function () {
   var pauseData = this._pauseBuffer.getContents();
-  this.process(pauseData, this.eof);
+  this.process(pauseData);
 };
 
 PullStream.prototype.write = function (data) {
-  this.process(data, false);
+  this.process(data);
   return true;
 };
 
 PullStream.prototype.end = function (data) {
-  this.process(data, true);
+  this._recvEnd = true;
+  if (data) {
+    this.process(data);
+  } else if (!this._paused) {
+    if (this._emitter.listeners('end').length > 0) {
+      this._emitter.emit('end');
+    } else {
+      this.emit('end');
+    }
+  }
   return true;
 };
 
-PullStream.prototype.process = function (data, end) {
+PullStream.prototype.process = function (data) {
   if (data) {
     if (this._paused) {
       this._pauseBuffer.write(data);
     } else {
       this._emitter.emit('data', data);
     }
-  }
-  if (end) {
-    this.eof = true;
-    if (!this._paused) {
-      if (this._emitter.listeners('end').length === 0) {
-        this.emit('end');
-      } else {
-        this._emitter.emit('end');
-      }
+  } else if (!data && this._recvEnd) {
+    if (this._emitter.listeners('end').length === 0) {
+      this.eof = true;
+      this.emit('end');
+    } else {
+      this._emitter.emit('end');
     }
   }
 };
@@ -93,6 +100,9 @@ PullStream.prototype._pull = function (len, callback) {
   });
   self._emitter.on('data', dataOrEnd.bind(self, 'data'));
   self._emitter.on('end', dataOrEnd.bind(self, 'end'));
+  if (this._recvEnd) {
+    dataOrEnd('end');
+  }
 
   function dataOrEnd(evt, data) {
     if (data) {
@@ -103,23 +113,24 @@ PullStream.prototype._pull = function (len, callback) {
         lenToCopy = data.length;
       }
       resultBuffer.write(data.slice(0, lenToCopy));
-      lenLeft -= lenToCopy;
+      if (len) {
+        lenLeft -= lenToCopy;
+      }
     }
-    if (lenLeft === 0 || evt === 'end') {
+    if ((lenLeft === 0 || lenLeft === null) || evt === 'end') {
       self._emitter.removeAllListeners();
       var resultBufferContents = resultBuffer.getContents();
-      if (!resultBufferContents && self.eof) {
+      if (!resultBufferContents && self._recvEnd) {
         callback(new Error("End of Stream"));
       } else {
-        resultBufferContents = resultBufferContents || new Buffer(0);
         resultBufferContents.posInStream = self._positionInStream;
         self._positionInStream += resultBufferContents.length;
         callback(null, resultBufferContents);
       }
       if (data && lenToCopy < data.length) {
-        process.nextTick(function () {
-          self.process(data.slice(lenToCopy), evt === 'end');
-        });
+        //process.nextTick(function () {
+          self.process(data.slice(lenToCopy));
+        //});
       } else if (evt === 'end') {
         self.emit('end');
       }
@@ -158,7 +169,7 @@ PullStream.prototype._pipe = function (len, destStream) {
       destStream.end();
       if (data && lenToWrite < data.length) {
         process.nextTick(function () {
-          self.process(data.slice(lenToWrite), evt === 'end');
+          self.process(data.slice(lenToWrite));
         });
       } else if (evt === 'end') {
         self.emit('end');
