@@ -9,10 +9,20 @@ var events = require("events");
 var streamBuffers = require("stream-buffers");
 
 function PullStream() {
+  var self = this;
   Stream.apply(this);
   this.readable = false;
   this.writable = true;
   this._emitter = new events.EventEmitter();
+  this.on('pipe', function (srcStream) {
+    self.pause = function () {
+      srcStream.pause();
+    };
+
+    self.resume = function () {
+      srcStream.resume();
+    };
+  });
 }
 inherits(PullStream, Stream);
 
@@ -29,6 +39,7 @@ PullStream.prototype.process = function (data, end) {
     this._emitter.emit('data', data);
   }
   if (end) {
+    this._end = true;
     if (this._emitter.listeners('end').length === 0) {
       this.emit('end');
     } else {
@@ -72,7 +83,12 @@ PullStream.prototype._pull = function (len, callback) {
     }
     if (lenLeft === 0 || evt === 'end') {
       self._emitter.removeAllListeners();
-      callback(null, resultBuffer.getContents() || new Buffer(0));
+      var resultBufferContents = resultBuffer.getContents();
+      if (!resultBufferContents && self._end) {
+        callback(new Error("End of Stream"));
+      } else {
+        callback(null, resultBufferContents || new Buffer(0));
+      }
       if (data && lenToCopy < data.length) {
         self.process(data.slice(lenToCopy), evt === 'end');
       } else if (evt === 'end') {

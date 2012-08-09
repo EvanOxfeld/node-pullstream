@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "over": "0.0.2",
-    "stream-buffers": "~0.2.3"
+    "stream-buffers": "~0.2.3",
+    "pause-stream": "0.0.3"
   }
 }
