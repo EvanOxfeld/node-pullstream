@@ -25,7 +25,7 @@ test("source sending 1-byte at a time", function (t) {
 
   ps.pull('Hello'.length, function (err, data) {
     if (err) {
-      t.fail(err);
+      return t.fail(err);
     }
     t.equal('Hello', data.toString());
 
@@ -38,7 +38,7 @@ test("source sending 1-byte at a time", function (t) {
 
       ps.pull(function (err, data) {
         if (err) {
-          t.fail(err);
+          return t.fail(err);
         }
         t.equal('!', data.toString());
       });
@@ -67,7 +67,7 @@ test("source sending all data at once", function (t) {
 
   ps.pull('Hello'.length, function (err, data) {
     if (err) {
-      t.fail(err);
+      return t.fail(err);
     }
     t.equal('Hello', data.toString());
 
@@ -109,13 +109,13 @@ test("two length pulls", function (t) {
 
   ps.pull('Hello'.length, function (err, data) {
     if (err) {
-      t.fail(err);
+      return t.fail(err);
     }
     t.equal('Hello', data.toString());
 
     ps.pull(' World!'.length, function (err, data) {
       if (err) {
-        t.fail(err);
+        return t.fail(err);
       }
       t.equal(' World!', data.toString());
     });
@@ -136,13 +136,13 @@ test("read from file", function (t) {
 
   ps.pull('Hello'.length, function (err, data) {
     if (err) {
-      t.fail(err);
+      return t.fail(err);
     }
     t.equal('Hello', data.toString());
 
     ps.pull(' World!'.length, function (err, data) {
       if (err) {
-        t.fail(err);
+        return t.fail(err);
       }
       t.equal(' World!', data.toString());
     });
@@ -171,7 +171,7 @@ test("pause/resume", function (t) {
     ps.resume();
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
-        t.fail(err);
+        return t.fail(err);
       }
       t.equal('Hello', data.toString());
 
@@ -204,7 +204,7 @@ test("read past end of stream", function (t) {
 
   ps.pull('Hello World!'.length, function (err, data) {
     if (err) {
-      t.fail(err);
+      return t.fail(err);
     }
     t.equal('Hello World!', data.toString());
 
@@ -214,5 +214,26 @@ test("read past end of stream", function (t) {
       }
       t.fail('should get an error');
     });
+  });
+});
+
+test("pause/resume using writes", function (t) {
+  t.plan(2);
+
+  var isResumed = false;
+  var ps = new PullStream();
+  ps.pause();
+  ps.pull('Hello World!'.length, function (err, data) {
+    if (err) {
+      return t.fail(err);
+    }
+    t.equal(true, isResumed, 'Stream is resumed');
+    t.equal('Hello World!', data.toString());
+    t.end();
+  });
+  ps.write(new Buffer('Hello World!', 'utf8'));
+  process.nextTick(function () {
+    isResumed = true;
+    ps.resume();
   });
 });

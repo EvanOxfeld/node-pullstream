@@ -14,17 +14,31 @@ function PullStream() {
   this.readable = false;
   this.writable = true;
   this._emitter = new events.EventEmitter();
+  this._pauseBuffer = new streamBuffers.WritableStreamBuffer();
+  this._paused = false;
   this.on('pipe', function (srcStream) {
-    self.pause = function () {
-      srcStream.pause();
-    };
+    if (srcStream.pause) {
+      self.pause = function () {
+        self._paused = true;
+        srcStream.pause();
+      };
+    }
 
-    self.resume = function () {
-      srcStream.resume();
-    };
+    if (srcStream.resume) {
+      self.resume = function () {
+        self._paused = false;
+        self._sendPauseBuffer();
+        srcStream.resume();
+      };
+    }
   });
 }
 inherits(PullStream, Stream);
+
+PullStream.prototype._sendPauseBuffer = function () {
+  var pauseData = this._pauseBuffer.getContents();
+  this.process(pauseData, this._end);
+};
 
 PullStream.prototype.write = function (data) {
   this.process(data, false);
@@ -36,14 +50,20 @@ PullStream.prototype.end = function (data) {
 
 PullStream.prototype.process = function (data, end) {
   if (data) {
-    this._emitter.emit('data', data);
+    if (this._paused) {
+      this._pauseBuffer.write(data);
+    } else {
+      this._emitter.emit('data', data);
+    }
   }
   if (end) {
     this._end = true;
-    if (this._emitter.listeners('end').length === 0) {
-      this.emit('end');
-    } else {
-      this._emitter.emit('end', data);
+    if (!this._paused) {
+      if (this._emitter.listeners('end').length === 0) {
+        this.emit('end');
+      } else {
+        this._emitter.emit('end', data);
+      }
     }
   }
 };
@@ -133,4 +153,13 @@ PullStream.prototype._pipe = function (len, destStream) {
       }
     }
   }
+};
+
+PullStream.prototype.pause = function () {
+  this._paused = true;
+};
+
+PullStream.prototype.resume = function () {
+  this._paused = false;
+  this._sendPauseBuffer();
 };
