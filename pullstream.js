@@ -42,10 +42,12 @@ PullStream.prototype._sendPauseBuffer = function () {
 
 PullStream.prototype.write = function (data) {
   this.process(data, false);
+  return true;
 };
 
 PullStream.prototype.end = function (data) {
   this.process(data, true);
+  return true;
 };
 
 PullStream.prototype.process = function (data, end) {
