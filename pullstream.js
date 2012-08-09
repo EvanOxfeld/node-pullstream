@@ -162,6 +162,9 @@ PullStream.prototype.pause = function () {
 };
 
 PullStream.prototype.resume = function () {
-  this._paused = false;
-  this._sendPauseBuffer();
+  var self = this;
+  process.nextTick(function () {
+    self._paused = false;
+    self._sendPauseBuffer();
+  });
 };

@@ -227,7 +227,7 @@ test("pause/resume using writes", function (t) {
     if (err) {
       return t.fail(err);
     }
-    t.equal(true, isResumed, 'Stream is resumed');
+    t.ok(isResumed, 'Stream is resumed');
     t.equal('Hello World!', data.toString());
     t.end();
   });
@@ -236,4 +236,30 @@ test("pause/resume using writes", function (t) {
     isResumed = true;
     ps.resume();
   });
+});
+
+test("pause/resume using writes pause after first pull", function (t) {
+  t.plan(3);
+
+  var isResumed = false;
+  var ps = new PullStream();
+  ps.pull('Hello '.length, function (err, data) {
+    if (err) {
+      return t.fail(err);
+    }
+    t.equal('Hello ', data.toString());
+    ps.pause();
+    ps.pull('World!'.length, function (err, data) {
+      if (err) {
+        return t.fail(err);
+      }
+      t.ok(isResumed, 'isResumed');
+      t.equal('World!', data.toString());
+    });
+    process.nextTick(function () {
+      isResumed = true;
+      ps.resume();
+    });
+  });
+  ps.write(new Buffer('Hello World!', 'utf8'));
 });
