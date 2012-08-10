@@ -18,21 +18,9 @@ function PullStream() {
   this._recvEnd = false;
   this._serviceRequests = null;
   this.eof = false;
+  this._srcStream = null;
   this.on('pipe', function (srcStream) {
-    if (srcStream.pause) {
-      self.pause = function () {
-        self.paused = true;
-        srcStream.pause();
-      };
-    }
-
-    if (srcStream.resume) {
-      self.resume = function () {
-        self.paused = false;
-        self._sendPauseBuffer();
-        srcStream.resume();
-      };
-    }
+    self._srcStream = srcStream;
   });
 }
 inherits(PullStream, Stream);
@@ -159,6 +147,9 @@ PullStream.prototype._pipe = function (len, destStream) {
 
 PullStream.prototype.pause = function () {
   this.paused = true;
+  if (this._srcStream && this._srcStream.pause) {
+    this._srcStream.pause();
+  }
 };
 
 PullStream.prototype.resume = function () {
@@ -166,5 +157,8 @@ PullStream.prototype.resume = function () {
   process.nextTick(function () {
     self.paused = false;
     self._sendPauseBuffer();
+    if (self._srcStream && self._srcStream.resume) {
+      self._srcStream.resume();
+    }
   });
 };
