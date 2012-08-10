@@ -67,11 +67,8 @@ PullStream.prototype.process = function () {
 };
 
 PullStream.prototype.pull = over([
-  [over.number, over.func, function (len, callback) {
+  [over.numberOptionalWithDefault(null), over.func, function (len, callback) {
     this._pull(len, callback);
-  }],
-  [over.func, function (callback) {
-    this._pull(null, callback);
   }]
 ]);
 
@@ -107,11 +104,8 @@ PullStream.prototype._pull = function (len, callback) {
 };
 
 PullStream.prototype.pipe = over([
-  [over.number, over.object, function (len, destStream) {
+  [over.numberOptionalWithDefault(null), over.object, function (len, destStream) {
     this._pipe(len, destStream);
-  }],
-  [over.object, function (destStream) {
-    this._pipe(null, destStream);
   }]
 ]);
 
