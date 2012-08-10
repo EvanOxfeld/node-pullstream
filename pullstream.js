@@ -36,6 +36,13 @@ PullStream.prototype.write = function (data) {
 };
 
 PullStream.prototype.end = function (data) {
+  this.data = function() {
+    throw new Error("End already called");
+  };
+  this.end = function() {
+    throw new Error("End already called");
+  };
+
   this._recvEnd = true;
   if (data) {
     this._buffer.write(data);

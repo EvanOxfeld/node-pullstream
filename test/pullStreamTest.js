@@ -337,6 +337,27 @@ module.exports = {
         ps.end();
       });
     });
+  },
+
+  "throw on calling data or end after end": function (t) {
+    var ps = new PullStream();
+    ps.end();
+
+    try {
+      ps.data(new Buffer('hello', 'utf8'));
+      t.fail("should throw error");
+    } catch (ex) {
+      t.ok(ex);
+    }
+
+    try {
+      ps.end(new Buffer('hello', 'utf8'));
+      t.fail("should throw error");
+    } catch (ex) {
+      t.ok(ex);
+    }
+
+    t.done();
   }
 };
 
