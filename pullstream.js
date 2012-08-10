@@ -5,7 +5,6 @@ module.exports = PullStream;
 var inherits = require("util").inherits;
 var Stream = require('stream').Stream;
 var over = require('over');
-var events = require("events");
 var streamBuffers = require("stream-buffers");
 
 function PullStream() {
@@ -13,11 +12,11 @@ function PullStream() {
   Stream.apply(this);
   this.readable = false;
   this.writable = true;
-  this._emitter = new events.EventEmitter();
   this._buffer = new streamBuffers.WritableStreamBuffer();
   this.paused = false;
   this._positionInStream = 0;
   this._recvEnd = false;
+  this._serviceRequests = null;
   this.eof = false;
   this.on('pipe', function (srcStream) {
     if (srcStream.pause) {
@@ -57,11 +56,13 @@ PullStream.prototype.end = function (data) {
   return true;
 };
 
-PullStream.prototype.process = function (data) {
-  if (this._recvEnd && this._emitter.listeners('data').length === 0) {
+PullStream.prototype.process = function () {
+  if (this._recvEnd && this._serviceRequests === null) {
     this.emit('end');
   } else {
-    this._emitter.emit('data');
+    if (this._serviceRequests) {
+      this._serviceRequests();
+    }
   }
 };
 
@@ -80,16 +81,16 @@ PullStream.prototype._pull = function (len, callback) {
   }
 
   var self = this;
-  self._emitter.on('data', dataOrEnd);
-  dataOrEnd();
+  this._serviceRequests = pullServiceRequest;
+  pullServiceRequest();
 
-  function dataOrEnd() {
+  function pullServiceRequest() {
     if (self.paused) {
       return;
     }
 
     if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
-      self._emitter.removeAllListeners();
+      self._serviceRequests = null;
       var results = self._buffer.getContents(len);
       results.posInStream = self._positionInStream;
       self._positionInStream += results.length;
@@ -122,10 +123,10 @@ PullStream.prototype._pipe = function (len, destStream) {
 
   var self = this;
   var lenLeft = len;
-  this._emitter.on('data', dataOrEnd);
-  dataOrEnd();
+  this._serviceRequests = pipeServiceRequest;
+  pipeServiceRequest();
 
-  function dataOrEnd() {
+  function pipeServiceRequest() {
     if (self.paused) {
       return;
     }
@@ -135,13 +136,14 @@ PullStream.prototype._pipe = function (len, destStream) {
       var results = self._buffer.getContents(lenToRemove);
       results.posInStream = self._positionInStream;
       self._positionInStream += results.length;
-      destStream.write(results);
       lenLeft -= lenToRemove;
-    }
-
-    if (lenLeft === 0) {
-      self._emitter.removeAllListeners();
-      destStream.end();
+      if (lenLeft === 0) {
+        self._serviceRequests = null;
+      }
+      destStream.write(results);
+      if (lenLeft === 0) {
+        destStream.end();
+      }
     }
 
     if (self._recvEnd && self._buffer.size() === 0) {
