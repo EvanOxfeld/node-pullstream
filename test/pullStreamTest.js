@@ -119,6 +119,28 @@ module.exports = {
     });
   },
 
+  "pulling zero bytes returns empty data": function (t) {
+    var ps = new PullStream();
+
+    var sourceStream = new streamBuffers.ReadableStreamBuffer({
+      frequency: 0,
+      chunkSize: 1000
+    });
+    sourceStream.put("Hello World!");
+
+    sourceStream.pipe(ps);
+
+    ps.pull(0, function (err, data) {
+      if (err) {
+        return t.done(err);
+      }
+
+      t.equal(0, data.length, "data is empty");
+      sourceStream.destroy();
+      return t.done();
+    });
+  },
+
   "read from file": function (t) {
     var ps = new PullStream();
     ps.on('end', function () {
