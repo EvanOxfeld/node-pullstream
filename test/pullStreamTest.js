@@ -27,6 +27,7 @@ module.exports = {
         return t.done(err);
       }
       t.equal('Hello', data.toString());
+      t.equal(0, data.posInStream);
 
       var writableStream = new streamBuffers.WritableStreamBuffer({
         initialSize: 100
@@ -40,6 +41,7 @@ module.exports = {
             return t.done(err);
           }
           t.equal('!', data.toString());
+          t.equal('Hello World'.length, data.posInStream);
         });
       });
 

@@ -91,6 +91,8 @@ PullStream.prototype._pull = function (len, callback) {
     if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
       self._emitter.removeAllListeners();
       var results = self._buffer.getContents(len);
+      results.posInStream = self._positionInStream;
+      self._positionInStream += results.length;
       callback(null, results);
 
       if (self._recvEnd && self._buffer.size() === 0) {
@@ -131,6 +133,8 @@ PullStream.prototype._pipe = function (len, destStream) {
     var lenToRemove = Math.min(self._buffer.size(), lenLeft);
     if (lenToRemove > 0) {
       var results = self._buffer.getContents(lenToRemove);
+      results.posInStream = self._positionInStream;
+      self._positionInStream += results.length;
       destStream.write(results);
       lenLeft -= lenToRemove;
     }
