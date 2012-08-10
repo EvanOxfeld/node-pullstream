@@ -36,10 +36,10 @@ PullStream.prototype.write = function (data) {
 };
 
 PullStream.prototype.end = function (data) {
-  this.data = function() {
+  this.data = function () {
     throw new Error("End already called");
   };
-  this.end = function() {
+  this.end = function () {
     throw new Error("End already called");
   };
 
@@ -53,12 +53,17 @@ PullStream.prototype.end = function (data) {
 
 PullStream.prototype.process = function () {
   if (this._recvEnd && this._serviceRequests === null) {
-    this.emit('end');
+    this._finish();
   } else {
     if (this._serviceRequests) {
       this._serviceRequests();
     }
   }
+};
+
+PullStream.prototype._finish = function () {
+  this.emit('end');
+  this.emit('close');
 };
 
 PullStream.prototype.pull = over([
@@ -84,11 +89,11 @@ PullStream.prototype.pull = over([
         callback(null, results);
 
         if (self._recvEnd && self._buffer.size() === 0) {
-          self.emit('end');
+          self._finish();
         }
       } else if (self._recvEnd && self._buffer.size() === 0) {
         callback(new Error('End of Stream'));
-        self.emit('end');
+        self._finish();
       }
     }
   }]
@@ -138,7 +143,7 @@ PullStream.prototype.pipe = over([
           destStream.end();
           destStream = null;
         }
-        self.emit('end');
+        self._finish();
       }
     }
 
