@@ -15,21 +15,21 @@ function PullStream() {
   this.writable = true;
   this._emitter = new events.EventEmitter();
   this._buffer = new streamBuffers.WritableStreamBuffer();
-  this._paused = false;
+  this.paused = false;
   this._positionInStream = 0;
   this._recvEnd = false;
   this.eof = false;
   this.on('pipe', function (srcStream) {
     if (srcStream.pause) {
       self.pause = function () {
-        self._paused = true;
+        self.paused = true;
         srcStream.pause();
       };
     }
 
     if (srcStream.resume) {
       self.resume = function () {
-        self._paused = false;
+        self.paused = false;
         self._sendPauseBuffer();
         srcStream.resume();
       };
@@ -84,7 +84,7 @@ PullStream.prototype._pull = function (len, callback) {
   dataOrEnd();
 
   function dataOrEnd() {
-    if (self._paused) {
+    if (self.paused) {
       return;
     }
 
@@ -126,7 +126,7 @@ PullStream.prototype._pipe = function (len, destStream) {
   dataOrEnd();
 
   function dataOrEnd() {
-    if (self._paused) {
+    if (self.paused) {
       return;
     }
 
@@ -151,13 +151,13 @@ PullStream.prototype._pipe = function (len, destStream) {
 };
 
 PullStream.prototype.pause = function () {
-  this._paused = true;
+  this.paused = true;
 };
 
 PullStream.prototype.resume = function () {
   var self = this;
   process.nextTick(function () {
-    self._paused = false;
+    self.paused = false;
     self._sendPauseBuffer();
   });
 };
