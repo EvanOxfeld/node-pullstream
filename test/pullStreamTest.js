@@ -292,6 +292,29 @@ module.exports = {
     });
     ps.write(new Buffer('Hello World!', 'utf8'));
     ps.end();
+  },
+
+  "pipe with no length": function (t) {
+    var ps = new PullStream();
+
+    var writableStream = new streamBuffers.WritableStreamBuffer({
+      initialSize: 100
+    });
+    writableStream.on('close', function () {
+      var str = writableStream.getContentsAsString('utf8');
+      t.equal('Hello World!', str);
+      t.done();
+    });
+    ps.pipe(writableStream);
+
+    process.nextTick(function () {
+      ps.write(new Buffer('Hello', 'utf8'));
+      ps.write(new Buffer(' World', 'utf8'));
+      process.nextTick(function () {
+        ps.write(new Buffer('!', 'utf8'));
+        ps.end();
+      });
+    });
   }
 };
 

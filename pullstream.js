@@ -111,8 +111,7 @@ PullStream.prototype.pipe = over([
     this._pipe(len, destStream);
   }],
   [over.object, function (destStream) {
-    throw new Error("Not implemented");
-    //this._pull(null, destStream);
+    this._pipe(null, destStream);
   }]
 ]);
 
@@ -131,22 +130,34 @@ PullStream.prototype._pipe = function (len, destStream) {
       return;
     }
 
-    var lenToRemove = Math.min(self._buffer.size(), lenLeft);
+    var lenToRemove;
+    if (lenLeft === null) {
+      lenToRemove = self._buffer.size();
+    } else {
+      lenToRemove = Math.min(self._buffer.size(), lenLeft);
+    }
     if (lenToRemove > 0) {
       var results = self._buffer.getContents(lenToRemove);
       results.posInStream = self._positionInStream;
       self._positionInStream += results.length;
-      lenLeft -= lenToRemove;
-      if (lenLeft === 0) {
-        self._serviceRequests = null;
+      if (lenLeft !== null) {
+        lenLeft -= lenToRemove;
+        if (lenLeft === 0) {
+          self._serviceRequests = null;
+        }
       }
       destStream.write(results);
       if (lenLeft === 0) {
         destStream.end();
+        destStream = null;
       }
     }
 
     if (self._recvEnd && self._buffer.size() === 0) {
+      if (destStream) {
+        destStream.end();
+        destStream = null;
+      }
       self.emit('end');
     }
   }
