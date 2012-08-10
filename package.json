@@ -11,7 +11,7 @@
     "nodeunit": "~0.7.4"
   },
   "dependencies": {
-    "over": "~0.0.4",
+    "over": "~0.0.5",
     "stream-buffers": "~0.2.3"
   }
 }
