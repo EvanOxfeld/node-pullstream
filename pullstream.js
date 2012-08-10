@@ -56,94 +56,86 @@ PullStream.prototype.process = function () {
 
 PullStream.prototype.pull = over([
   [over.numberOptionalWithDefault(null), over.func, function (len, callback) {
-    this._pull(len, callback);
-  }]
-]);
-
-PullStream.prototype._pull = function (len, callback) {
-  if (len === 0) {
-    return callback(null, new Buffer(0));
-  }
-
-  var self = this;
-  this._serviceRequests = pullServiceRequest;
-  pullServiceRequest();
-
-  function pullServiceRequest() {
-    if (self.paused) {
-      return;
+    if (len === 0) {
+      return callback(null, new Buffer(0));
     }
 
-    if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
-      self._serviceRequests = null;
-      var results = self._buffer.getContents(len);
-      results.posInStream = self._positionInStream;
-      self._positionInStream += results.length;
-      callback(null, results);
+    var self = this;
+    this._serviceRequests = pullServiceRequest;
+    pullServiceRequest();
 
-      if (self._recvEnd && self._buffer.size() === 0) {
+    function pullServiceRequest() {
+      if (self.paused) {
+        return;
+      }
+
+      if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
+        self._serviceRequests = null;
+        var results = self._buffer.getContents(len);
+        results.posInStream = self._positionInStream;
+        self._positionInStream += results.length;
+        callback(null, results);
+
+        if (self._recvEnd && self._buffer.size() === 0) {
+          self.emit('end');
+        }
+      } else if (self._recvEnd && self._buffer.size() === 0) {
+        callback(new Error('End of Stream'));
         self.emit('end');
       }
-    } else if (self._recvEnd && self._buffer.size() === 0) {
-      callback(new Error('End of Stream'));
-      self.emit('end');
     }
-  }
-};
+  }]
+]);
 
 PullStream.prototype.pipe = over([
   [over.numberOptionalWithDefault(null), over.object, function (len, destStream) {
-    this._pipe(len, destStream);
-  }]
-]);
-
-PullStream.prototype._pipe = function (len, destStream) {
-  if (len === 0) {
-    return callback(null, new Buffer(0));
-  }
-
-  var self = this;
-  var lenLeft = len;
-  this._serviceRequests = pipeServiceRequest;
-  pipeServiceRequest();
-
-  function pipeServiceRequest() {
-    if (self.paused) {
-      return;
+    if (len === 0) {
+      return callback(null, new Buffer(0));
     }
 
-    var lenToRemove;
-    if (lenLeft === null) {
-      lenToRemove = self._buffer.size();
-    } else {
-      lenToRemove = Math.min(self._buffer.size(), lenLeft);
-    }
-    if (lenToRemove > 0) {
-      var results = self._buffer.getContents(lenToRemove);
-      results.posInStream = self._positionInStream;
-      self._positionInStream += results.length;
-      if (lenLeft !== null) {
-        lenLeft -= lenToRemove;
+    var self = this;
+    var lenLeft = len;
+    this._serviceRequests = pipeServiceRequest;
+    pipeServiceRequest();
+
+    function pipeServiceRequest() {
+      if (self.paused) {
+        return;
+      }
+
+      var lenToRemove;
+      if (lenLeft === null) {
+        lenToRemove = self._buffer.size();
+      } else {
+        lenToRemove = Math.min(self._buffer.size(), lenLeft);
+      }
+      if (lenToRemove > 0) {
+        var results = self._buffer.getContents(lenToRemove);
+        results.posInStream = self._positionInStream;
+        self._positionInStream += results.length;
+        if (lenLeft !== null) {
+          lenLeft -= lenToRemove;
+          if (lenLeft === 0) {
+            self._serviceRequests = null;
+          }
+        }
+        destStream.write(results);
         if (lenLeft === 0) {
-          self._serviceRequests = null;
+          destStream.end();
+          destStream = null;
         }
       }
-      destStream.write(results);
-      if (lenLeft === 0) {
-        destStream.end();
-        destStream = null;
-      }
-    }
 
-    if (self._recvEnd && self._buffer.size() === 0) {
-      if (destStream) {
-        destStream.end();
-        destStream = null;
+      if (self._recvEnd && self._buffer.size() === 0) {
+        if (destStream) {
+          destStream.end();
+          destStream = null;
+        }
+        self.emit('end');
       }
-      self.emit('end');
     }
-  }
-};
+  }]
+]);
 
 PullStream.prototype.pause = function () {
   this.paused = true;
