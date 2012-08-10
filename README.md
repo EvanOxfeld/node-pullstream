@@ -1,7 +1,7 @@
 pullstream
 ==========
 
-Tired of getting a firehose worth of data from your streams. The module is here to save the day. PullStream allows
+Tired of getting a firehose worth of data from your streams. This module is here to save the day. PullStream allows
 you to pull data when you want and as much as you want.
 
 ## Quick Examples
@@ -41,14 +41,14 @@ ps.pull(5, function(err, data) {
 ## PullStream
 
 <a name="pullStreamPull" />
-**ps.pull([number], callback)**
+### ps.pull([number], callback)
 
 Calls a callback when the specified number of bytes are ready. If no number is specified pull will read until the end
 of the input stream.
 
 __Arguments__
 
-* number - Number of bytes to wait for. If not specified reads to the end of input stream.
+* number (optional) - Number of bytes to wait for. If not specified reads to the end of input stream.
 * callback(err, data) - Callback called when the bytes are ready. data is a buffer containing the bytes.
 
 __Example__
@@ -62,14 +62,14 @@ ps.pull(5, function(err, data) {
 ```
 
 <a name="pullStreamPipe" />
-**ps.pipe([number], destStream)**
+### ps.pipe([number], destStream)
 
 Pipes the specified number of bytes to destStream. If a number is not specified pipe will pipe the remainder
 of the input stream to destStream.
 
 __Arguments__
 
-* number - Number of bytes to pipe. If not specified pipe the rest of input stream.
+* number (optional) - Number of bytes to pipe. If not specified pipe the rest of input stream.
 * destStream - The stream to pipe data to.
 
 __Example__
@@ -84,7 +84,7 @@ ps.pipe(100, out).on('end', function() {
 ```
 
 <a name="pullStreamWrite" />
-**ps.write(data)**
+### ps.write(data)
 
 Writes data to input side of a pull stream.
 
@@ -105,7 +105,7 @@ ps.write(new Buffer('Hello World', 'utf8'));
 ```
 
 <a name="pullStreamEnd" />
-**ps.end()**
+### ps.end()
 
 Manually ends a pull stream.
 
