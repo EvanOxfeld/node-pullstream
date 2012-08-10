@@ -134,6 +134,8 @@ PullStream.prototype.pipe = over([
         self.emit('end');
       }
     }
+
+    return this;
   }]
 ]);
 
