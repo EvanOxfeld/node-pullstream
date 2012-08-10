@@ -72,6 +72,10 @@ __Arguments__
 * number (optional) - Number of bytes to pipe. If not specified pipe the rest of input stream.
 * destStream - The stream to pipe data to.
 
+__Returns__
+
+Returns destStream.
+
 __Example__
 
 ```javascript

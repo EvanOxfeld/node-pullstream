@@ -135,7 +135,7 @@ PullStream.prototype.pipe = over([
       }
     }
 
-    return this;
+    return destStream;
   }]
 ]);
 
