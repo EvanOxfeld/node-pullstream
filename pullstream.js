@@ -7,9 +7,11 @@ var Stream = require('stream').Stream;
 var over = require('over');
 var streamBuffers = require("stream-buffers");
 
-function PullStream() {
+function PullStream(opts) {
   var self = this;
   Stream.apply(this);
+  this.opts = opts || {};
+  this.opts.maxBufferSize = this.opts.maxBufferSize | (10 * 1024 * 1024);
   this.readable = false;
   this.writable = true;
   this._buffer = new streamBuffers.WritableStreamBuffer();
@@ -31,6 +33,9 @@ PullStream.prototype._sendPauseBuffer = function () {
 
 PullStream.prototype.write = function (data) {
   this._buffer.write(data);
+  if (this._buffer.maxSize() > this.opts.maxBufferSize && this._srcStream) {
+    this._srcStream.pause();
+  }
   this.process();
   return true;
 };
@@ -94,6 +99,10 @@ PullStream.prototype.pull = over([
       } else if (self._recvEnd && self._buffer.size() === 0) {
         callback(new Error('End of Stream'));
         self._finish();
+      } else {
+        if (self._srcStream) {
+          self._srcStream.resume();
+        }
       }
     }
   }]
@@ -135,6 +144,10 @@ PullStream.prototype.pipe = over([
         if (lenLeft === 0) {
           destStream.end();
           destStream = null;
+        }
+      } else {
+        if (self._srcStream) {
+          self._srcStream.resume();
         }
       }
 
