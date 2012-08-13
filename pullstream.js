@@ -68,8 +68,12 @@ PullStream.prototype.process = function () {
 };
 
 PullStream.prototype._finish = function () {
-  this.emit('end');
-  this.emit('close');
+  var self = this;
+  process.nextTick(function () {
+    self.emit('end');
+    self.emit('close');
+  });
+  this._finish = function () {};
 };
 
 PullStream.prototype.pull = over([
@@ -87,21 +91,24 @@ PullStream.prototype.pull = over([
         return;
       }
 
-      self._resumeSrcStream();
-
       if ((len !== null && self._buffer.size() >= len) || (len === null && self._recvEnd)) {
         self._serviceRequests = null;
         var results = self._buffer.getContents(len);
+        self._resumeSrcStream();
         results.posInStream = self._positionInStream;
         self._positionInStream += results.length;
-        callback(null, results);
+        process.nextTick(function () {
+          callback(null, results);
 
-        if (self._recvEnd && self._buffer.size() === 0) {
-          self._finish();
-        }
+          if (self._recvEnd && self._buffer.size() === 0) {
+            self._finish();
+          }
+        });
       } else if (self._recvEnd && self._buffer.size() === 0) {
         callback(new Error('End of Stream'));
         self._finish();
+      } else {
+        self._resumeSrcStream();
       }
     }
   }]
@@ -123,8 +130,6 @@ PullStream.prototype.pipe = over([
         return;
       }
 
-      self._resumeSrcStream();
-
       var lenToRemove;
       if (lenLeft === null) {
         lenToRemove = self._buffer.size();
@@ -133,6 +138,7 @@ PullStream.prototype.pipe = over([
       }
       if (lenToRemove > 0) {
         var results = self._buffer.getContents(lenToRemove);
+        self._resumeSrcStream();
         results.posInStream = self._positionInStream;
         self._positionInStream += results.length;
         if (lenLeft !== null) {
@@ -146,6 +152,8 @@ PullStream.prototype.pipe = over([
           destStream.end();
           destStream = null;
         }
+      } else {
+        self._resumeSrcStream();
       }
 
       if (self._recvEnd && self._buffer.size() === 0) {
