@@ -1,6 +1,6 @@
 {
   "name": "pullstream",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A stream you can pull data from.",
   "main": "pullstream.js",
   "scripts": {
@@ -15,7 +15,8 @@
     "url": "https://github.com/nearinfinity/node-pullstream.git"
   },
   "keywords": [
-    "stream", "pull"
+    "stream",
+    "pull"
   ],
   "devDependencies": {
     "nodeunit": "~0.7.4"
