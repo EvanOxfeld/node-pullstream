@@ -117,7 +117,7 @@ PullStream.prototype.pull = over([
 PullStream.prototype.pipe = over([
   [over.numberOptionalWithDefault(null), over.object, function (len, destStream) {
     if (len === 0) {
-      return callback(null, new Buffer(0));
+      return destStream.end();
     }
 
     var self = this;
