@@ -8,6 +8,7 @@ var PullStream = require('../');
 
 module.exports = {
   "source sending 1-byte at a time": function (t) {
+    t.expect(5);
     var ps = new PullStream();
     ps.on('end', function () {
       sourceStream.destroy();
@@ -50,6 +51,7 @@ module.exports = {
   },
 
   "source sending all data at once": function (t) {
+    t.expect(3);
     var ps = new PullStream();
     ps.on('end', function () {
       sourceStream.destroy();
@@ -90,6 +92,7 @@ module.exports = {
   },
 
   "two length pulls": function (t) {
+    t.expect(2);
     var ps = new PullStream();
     ps.on('end', function () {
       sourceStream.destroy();
@@ -120,6 +123,7 @@ module.exports = {
   },
 
   "pulling zero bytes returns empty data": function (t) {
+    t.expect(1);
     var ps = new PullStream();
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
@@ -142,9 +146,12 @@ module.exports = {
   },
 
   "read from file": function (t) {
+    t.expect(2);
     var ps = new PullStream();
     ps.on('end', function () {
-      return t.done();
+      process.nextTick(function() {
+        t.done();
+      });
     });
 
     var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
@@ -167,6 +174,7 @@ module.exports = {
   },
 
   "read from file pipe pause/resume": function (t) {
+    t.expect(3);
     var ps = new PullStream();
 
     var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
@@ -199,6 +207,7 @@ module.exports = {
   },
 
   "pause/resume": function (t) {
+    t.expect(2);
     var ps = new PullStream();
     ps.on('end', function () {
       sourceStream.destroy();
@@ -233,6 +242,7 @@ module.exports = {
   },
 
   "read past end of stream": function (t) {
+    t.expect(2);
     var ps = new PullStream();
     ps.on('end', function () {
       sourceStream.destroy();
@@ -264,6 +274,7 @@ module.exports = {
   },
 
   "pause/resume using writes": function (t) {
+    t.expect(2);
     var isResumed = false;
     var ps = new PullStream();
     ps.pause();
@@ -284,6 +295,7 @@ module.exports = {
   },
 
   "pause/resume using writes pause after first pull": function (t) {
+    t.expect(4);
     var isResumed = false;
     var ps = new PullStream();
     ps.pull('Hello '.length, function (err, data) {
@@ -317,6 +329,7 @@ module.exports = {
   },
 
   "pipe with no length": function (t) {
+    t.expect(1);
     var ps = new PullStream();
 
     var writableStream = new streamBuffers.WritableStreamBuffer({
@@ -340,6 +353,7 @@ module.exports = {
   },
 
   "throw on calling data or end after end": function (t) {
+    t.expect(2);
     var ps = new PullStream();
     ps.end();
 
