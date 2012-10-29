@@ -88,13 +88,14 @@ ps.pipe(100, out).on('end', function() {
 ```
 
 <a name="pullStreamWrite" />
-### ps.write(data)
+### ps.write(data, [encoding])
 
 Writes data to input side of a pull stream.
 
 __Arguments__
 
-* data - Buffer to write to the input side of the pull stream.
+* data - Buffer or string to write to the input side of the pull stream.
+* encoding (optional) - Encoding to use if data is a string. If not specified 'utf8' is used.
 
 __Example__
 
@@ -102,10 +103,10 @@ __Example__
 var ps = new PullStream();
 
 ps.pull(5, function(err, data) {
-  console.log(data.toString('utf8'));
+  console.log(data.toString('ascii'));
 });
 
-ps.write(new Buffer('Hello World', 'utf8'));
+ps.write('Hello World', 'ascii');
 ```
 
 <a name="pullStreamEnd" />
@@ -122,7 +123,7 @@ ps.pull(5, function(err, data) {
   console.log(data.toString('utf8'));
 });
 
-ps.write(new Buffer('Hello World', 'utf8'));
+ps.write('Hello World');
 ps.end();
 ```
 
