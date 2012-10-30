@@ -280,5 +280,44 @@ module.exports = {
     }
 
     t.done();
+  },
+
+  "pipe more bytes than the pullstream buffer size": function (t) {
+    t.expect(1);
+    var ps = new PullStream();
+    ps.on('end', function() {
+      sourceStream.destroy();
+    });
+
+    var aVals = "", bVals = "";
+    for (var i = 0; i < 20 * 1000; i++) {
+      aVals += 'a';
+    }
+    for (var i = 0; i < 180 * 1000; i++) {
+      bVals += 'b';
+    }
+    var combined = aVals + bVals;
+
+    var sourceStream = new streamBuffers.ReadableStreamBuffer({
+      frequency: 0,
+      chunkSize: 40 * 1024
+    });
+    sourceStream.put(aVals);
+
+    sourceStream.pipe(ps);
+
+    var writableStream = new streamBuffers.WritableStreamBuffer({
+      initialSize: 200 * 1000
+    });
+    writableStream.on('close', function () {
+      var str = writableStream.getContentsAsString('utf8');
+      t.equal(combined, str);
+      t.done();
+    });
+
+    ps.once('drain', function () {
+      ps.pipe(200 * 1000, writableStream);
+      process.nextTick(sourceStream.put.bind(null, bVals));
+    });
   }
 };

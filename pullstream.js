@@ -10,13 +10,17 @@ function PullStream(opts) {
   var self = this;
   this.opts = opts || {};
   PassThrough.call(this, opts);
-  this._flushed = false;
-  this._writesFinished = false;
   this.once('finish', function() {
     self._writesFinished = true;
     if (self._flushed) {
       process.nextTick(self._finish.bind(self));
     }
+  });
+  this.on('readable', function() {
+    self._process();
+  });
+  this.on('drain', function() {
+    self._process();
   });
 }
 inherits(PullStream, PassThrough);
@@ -31,17 +35,16 @@ PullStream.prototype.pull = over([
     pullServiceRequest();
 
     function pullServiceRequest() {
+      self._serviceRequests = null;
       if (self._flushed) {
         return callback(new Error('End of Stream'));
       }
-      self._serviceRequests = null;
 
       var data = self.read(len || undefined);
       if (data) {
         process.nextTick(callback.bind(null, null, data));
       } else {
         self._serviceRequests = pullServiceRequest;
-        self.once('readable', self._serviceRequests);
       }
     }
   }]
@@ -68,7 +71,6 @@ PullStream.prototype.pipe = over([
         destStream.end();
       } else {
         self._serviceRequests = pipeServiceRequest;
-        self.once('readable', self._serviceRequests);
       }
     }
 
@@ -76,24 +78,32 @@ PullStream.prototype.pipe = over([
   }]
 ]);
 
+PullStream.prototype._process = function () {
+  if (this._serviceRequests) {
+    this._serviceRequests();
+  }
+};
+
 PullStream.prototype._flush = function (outputFn, callback) {
   var self = this;
-
   if (this._readableState.length > 0) {
     return process.nextTick(self._flush.bind(self, outputFn, callback));
   }
 
   this._flushed = true;
-  if (this._writesFinished) {
-    process.nextTick(self._finish.bind(self));
-  }
+  return process.nextTick(function() {
+    if (self._writesFinished) {
+      self._finish(callback);
+    } else {
+      callback();
+    }
+  });
 };
 
-PullStream.prototype._finish = function () {
-  var self = this;
+PullStream.prototype._finish = function (callback) {
+  callback = callback || function () {};
   if (this._serviceRequests) {
     this._serviceRequests();
-  } else {
-    process.nextTick(self.emit.bind(self, 'end'));
   }
+  process.nextTick(callback);
 };
