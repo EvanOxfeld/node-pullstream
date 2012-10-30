@@ -4,14 +4,15 @@ var nodeunit = require('nodeunit');
 var fs = require("fs");
 var path = require("path");
 var streamBuffers = require("stream-buffers");
+var async = require('async')
 var PullStream = require('../');
 
 module.exports = {
   "source sending 1-byte at a time": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
+    t.expect(3);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('finish', function () {
       sourceStream.destroy();
-      t.done();
     });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
@@ -27,7 +28,6 @@ module.exports = {
         return t.done(err);
       }
       t.equal('Hello', data.toString());
-      t.equal(0, data.posInStream);
 
       var writableStream = new streamBuffers.WritableStreamBuffer({
         initialSize: 100
@@ -41,7 +41,7 @@ module.exports = {
             return t.done(err);
           }
           t.equal('!', data.toString());
-          t.equal('Hello World'.length, data.posInStream);
+          return t.done();
         });
       });
 
@@ -49,11 +49,11 @@ module.exports = {
     });
   },
 
-  "source sending all data at once": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
+  "source sending twelve bytes at once": function (t) {
+    t.expect(3);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('finish', function () {
       sourceStream.destroy();
-      return t.done();
     });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
@@ -82,6 +82,7 @@ module.exports = {
             return t.done(err);
           }
           t.equal('!', data.toString());
+          return t.done();
         });
       });
 
@@ -89,11 +90,45 @@ module.exports = {
     });
   },
 
-  "two length pulls": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
+  "source sending 512 bytes at once": function (t) {
+    t.expect(512 / 4);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('finish', function() {
       sourceStream.destroy();
-      return t.done();
+    });
+
+    var values = [];
+    for (var i = 0; i < 512; i+=4) {
+      values.push(i + 1000);
+    }
+    var sourceStream = new streamBuffers.ReadableStreamBuffer({
+      frequency: 0,
+      chunkSize: 1000
+    });
+    values.forEach(function(val) {
+      sourceStream.put(val);
+    });
+
+    sourceStream.pipe(ps);
+
+    async.forEachSeries(values, function (val, callback) {
+      ps.pull(4, function (err, data) {
+        if (err) {
+          return callback(err);
+        }
+        t.equal(val, data.toString());
+        return callback(null);
+      });
+    }, function (err) {
+      t.done(err);
+    });
+  },
+
+  "two length pulls": function (t) {
+    t.expect(2);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('finish', function () {
+      sourceStream.destroy();
     });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
@@ -115,12 +150,14 @@ module.exports = {
           return t.done(err);
         }
         t.equal(' World!', data.toString());
+        return t.done();
       });
     });
   },
 
   "pulling zero bytes returns empty data": function (t) {
-    var ps = new PullStream();
+    t.expect(1);
+    var ps = new PullStream({ lowWaterMark : 0 });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
       frequency: 0,
@@ -142,10 +179,8 @@ module.exports = {
   },
 
   "read from file": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
-      return t.done();
-    });
+    t.expect(2);
+    var ps = new PullStream({ lowWaterMark : 0 });
 
     var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
 
@@ -162,81 +197,16 @@ module.exports = {
           return t.done(err);
         }
         t.equal(' World!', data.toString());
-      });
-    });
-  },
-
-  "read from file pipe pause/resume": function (t) {
-    var ps = new PullStream();
-
-    var sourceStream = fs.createReadStream(path.join(__dirname, 'testFile.txt'));
-
-    sourceStream.pipe(ps);
-
-    ps.pause();
-    ps.pull('Hello'.length, function (err, data) {
-      if (err) {
-        return t.done(err);
-      }
-      t.equal('Hello', data.toString());
-
-      ps.pull(' World!'.length, function (err, data) {
-        if (err) {
-          return t.done(err);
-        }
-        t.equal(' World!', data.toString());
-
-        ps.pull(5, function (err, data) {
-          t.ok(err, 'end of file should happen');
-          return t.done();
-        });
-      });
-    });
-
-    process.nextTick(function () {
-      ps.resume();
-    });
-  },
-
-  "pause/resume": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
-      sourceStream.destroy();
-      return t.done();
-    });
-
-    var sourceStream = new streamBuffers.ReadableStreamBuffer({
-      frequency: 0,
-      chunkSize: 1000
-    });
-    sourceStream.put("Hello World!");
-
-    sourceStream.pipe(ps);
-
-    ps.pause();
-    process.nextTick(function () {
-      ps.resume();
-      ps.pull('Hello'.length, function (err, data) {
-        if (err) {
-          return t.done(err);
-        }
-        t.equal('Hello', data.toString());
-
-        ps.pull(' World!'.length, function (err, data) {
-          if (err) {
-            return t.done(err);
-          }
-          t.equal(' World!', data.toString());
-        });
+        return t.done();
       });
     });
   },
 
   "read past end of stream": function (t) {
-    var ps = new PullStream();
-    ps.on('end', function () {
+    t.expect(2);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('finish', function () {
       sourceStream.destroy();
-      return t.done();
     });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
@@ -256,68 +226,18 @@ module.exports = {
       ps.pull(1, function (err, data) {
         if (err) {
           t.ok(err, 'should get an error');
-          return; // ok
         }
-        return t.done(new Error('should get an error'));
+        t.done();
       });
     });
-  },
-
-  "pause/resume using writes": function (t) {
-    var isResumed = false;
-    var ps = new PullStream();
-    ps.pause();
-    ps.pull('Hello World!'.length, function (err, data) {
-      if (err) {
-        return t.done(err);
-      }
-      t.ok(isResumed, 'Stream is resumed');
-      t.equal('Hello World!', data.toString());
-      return t.done();
-    });
-    ps.write(new Buffer('Hello World!', 'utf8'));
-    ps.end();
-    setTimeout(function () {
-      isResumed = true;
-      ps.resume();
-    }, 100);
-  },
-
-  "pause/resume using writes pause after first pull": function (t) {
-    var isResumed = false;
-    var ps = new PullStream();
-    ps.pull('Hello '.length, function (err, data) {
-      if (err) {
-        return t.done(err);
-      }
-      t.equal('Hello ', data.toString());
-      ps.pause();
-      ps.pull('World!'.length, function (err, data) {
-        if (err) {
-          return t.done(err);
-        }
-        t.ok(isResumed, 'Stream is resumed');
-        t.equal('World!', data.toString());
-
-        ps.pull(10, function (err, data) {
-          if (err) {
-            t.ok(err, 'should be an error');
-            return t.done(); // good
-          }
-          return t.done(new Error('should be end of file'));
-        });
-      });
-      setTimeout(function () {
-        isResumed = true;
-        ps.resume();
-      }, 100);
-    });
-    ps.write(new Buffer('Hello World!', 'utf8'));
-    ps.end();
   },
 
   "pipe with no length": function (t) {
-    var ps = new PullStream();
+    t.expect(2);
+    var ps = new PullStream({ lowWaterMark : 0 });
+    ps.on('end', function () {
+      t.ok(true, "pullstream should end");
+    });
 
     var writableStream = new streamBuffers.WritableStreamBuffer({
       initialSize: 100
@@ -327,6 +247,7 @@ module.exports = {
       t.equal('Hello World!', str);
       t.done();
     });
+
     ps.pipe(writableStream);
 
     process.nextTick(function () {
@@ -340,11 +261,12 @@ module.exports = {
   },
 
   "throw on calling data or end after end": function (t) {
-    var ps = new PullStream();
+    t.expect(2);
+    var ps = new PullStream({ lowWaterMark : 0 });
     ps.end();
 
     try {
-      ps.data(new Buffer('hello', 'utf8'));
+      ps.write(new Buffer('hello', 'utf8'));
       t.fail("should throw error");
     } catch (ex) {
       t.ok(ex);
@@ -358,6 +280,44 @@ module.exports = {
     }
 
     t.done();
+  },
+
+  "pipe more bytes than the pullstream buffer size": function (t) {
+    t.expect(1);
+    var ps = new PullStream();
+    ps.on('end', function() {
+      sourceStream.destroy();
+    });
+
+    var aVals = "", bVals = "";
+    for (var i = 0; i < 20 * 1000; i++) {
+      aVals += 'a';
+    }
+    for (var i = 0; i < 180 * 1000; i++) {
+      bVals += 'b';
+    }
+    var combined = aVals + bVals;
+
+    var sourceStream = new streamBuffers.ReadableStreamBuffer({
+      frequency: 0,
+      chunkSize: 40 * 1024
+    });
+    sourceStream.put(aVals);
+
+    sourceStream.pipe(ps);
+
+    var writableStream = new streamBuffers.WritableStreamBuffer({
+      initialSize: 200 * 1000
+    });
+    writableStream.on('close', function () {
+      var str = writableStream.getContentsAsString('utf8');
+      t.equal(combined, str);
+      t.done();
+    });
+
+    ps.once('drain', function () {
+      ps.pipe(200 * 1000, writableStream);
+      process.nextTick(sourceStream.put.bind(null, bVals));
+    });
   }
 };
-
