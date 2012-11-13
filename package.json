@@ -1,6 +1,6 @@
 {
   "name": "pullstream",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A stream you can pull data from.",
   "main": "pullstream.js",
   "scripts": {
