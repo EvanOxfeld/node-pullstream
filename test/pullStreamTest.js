@@ -260,20 +260,13 @@ module.exports = {
     });
   },
 
-  "throw on calling data or end after end": function (t) {
-    t.expect(2);
+  "throw on calling write() after end": function (t) {
+    t.expect(1);
     var ps = new PullStream({ lowWaterMark : 0 });
     ps.end();
 
     try {
       ps.write(new Buffer('hello', 'utf8'));
-      t.fail("should throw error");
-    } catch (ex) {
-      t.ok(ex);
-    }
-
-    try {
-      ps.end(new Buffer('hello', 'utf8'));
       t.fail("should throw error");
     } catch (ex) {
       t.ok(ex);

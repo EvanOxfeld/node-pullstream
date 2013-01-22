@@ -4,8 +4,12 @@ module.exports = PullStream;
 
 require("setimmediate");
 var inherits = require("util").inherits;
-var PassThrough = require('readable-stream/passthrough');
+var PassThrough = require('stream').PassThrough;
 var over = require('over');
+
+if (!PassThrough) {
+  PassThrough = require('readable-stream/passthrough');
+}
 
 function PullStream(opts) {
   var self = this;
