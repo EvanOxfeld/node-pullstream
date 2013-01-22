@@ -2,6 +2,7 @@
 
 module.exports = PullStream;
 
+require("setimmediate");
 var inherits = require("util").inherits;
 var PassThrough = require('readable-stream/passthrough');
 var over = require('over');
@@ -13,7 +14,7 @@ function PullStream(opts) {
   this.once('finish', function() {
     self._writesFinished = true;
     if (self._flushed) {
-      process.nextTick(self._finish.bind(self));
+      self._finish();
     }
   });
   this.on('readable', function() {
@@ -87,17 +88,15 @@ PullStream.prototype._process = function () {
 PullStream.prototype._flush = function (outputFn, callback) {
   var self = this;
   if (this._readableState.length > 0) {
-    return process.nextTick(self._flush.bind(self, outputFn, callback));
+    return setImmediate(self._flush.bind(self, outputFn, callback));
   }
 
   this._flushed = true;
-  return process.nextTick(function() {
-    if (self._writesFinished) {
-      self._finish(callback);
-    } else {
-      callback();
-    }
-  });
+  if (self._writesFinished) {
+    self._finish(callback);
+  } else {
+    callback();
+  }
 };
 
 PullStream.prototype._finish = function (callback) {
