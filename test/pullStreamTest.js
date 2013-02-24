@@ -384,6 +384,32 @@ module.exports = {
       sourceStream.destroy();
       t.done();
     });
-  }
+  },
 
+  "use until-stream pattern option": function (t) {
+    t.expect(2);
+    var ps = new PullStream({ pattern: 'jumps' });
+    ps.on('finish', function () {
+      sourceStream.destroy();
+    });
+
+    var sourceStream = new streamBuffers.ReadableStreamBuffer({
+      frequency: 0,
+      chunkSize: 1
+    });
+    sourceStream.put("The quick brown fox jumps over the lazy dog");
+
+    var writableStream = new streamBuffers.WritableStreamBuffer();
+
+    writableStream.on('close', function () {
+      var str = writableStream.getContentsAsString('utf8');
+      t.equal(str, 'The quick brown fox ');
+      var data = ps.read();
+      t.equal(data.toString(), 'jumps');
+      ps.end();
+      t.done();
+    });
+
+    sourceStream.pipe(ps).pipe(writableStream);
+  }
 };

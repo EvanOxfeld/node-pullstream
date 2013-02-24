@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "over": "~0.0.5",
-    "readable-stream": "~0.2.0",
+    "until-stream": "~0.2.1",
     "setimmediate": "~1.0.1"
   }
 }
