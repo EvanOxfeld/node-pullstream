@@ -1,10 +1,8 @@
-pullstream
+pullstream [![Build Status](https://travis-ci.org/nearinfinity/node-pullstream.png)](https://travis-ci.org/nearinfinity/node-pullstream)
 ==========
 
 Tired of getting a firehose worth of data from your streams. This module is here to save the day. PullStream allows
 you to pull data when you want and as much as you want.
-
-[![Build Status](https://travis-ci.org/nearinfinity/node-pullstream.png)](https://travis-ci.org/nearinfinity/node-pullstream)
 
 ## Quick Examples
 
