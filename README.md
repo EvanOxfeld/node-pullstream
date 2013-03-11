@@ -2,7 +2,7 @@ pullstream [![Build Status](https://travis-ci.org/nearinfinity/node-pullstream.p
 ==========
 
 Tired of getting a firehose worth of data from your streams. This module is here to save the day. PullStream allows
-you to pull data when you want, as much as you want, and until the pattern you want.
+you to pull data when you want and as much as you want.
 
 ## Quick Examples
 
@@ -33,28 +33,16 @@ ps.pull(5, function(err, data) {
 # API Index
 
 ## PullStream
- * [new PullStream([options])](#pullStreamConstructor)
  * [pull](#pullStreamPull)
  * [pullUpTo](#pullStreamPullUpTo)
  * [pipe](#pullStreamPipe)
  * [write](#pullStreamWrite)
  * [end](#pullStreamEnd)
- * [reconfigure](#pullStreamReconfigure)
 
 # API Documentation
 
 <a name="pullStream"/>
 ## PullStream
-
-<a name="pullStreamConstructor" />
-### new PullStream([options])
-
-PullStream inherits from the [until-stream](https://github.com/EvanOxfeld/until-stream) module and passes options to the UntilStream constructor.
-
-__Arguments__
-
-* options (optional)
-    * pattern - String or Buffer If provided, PullStream will stop pipes when reached
 
 <a name="pullStreamPull" />
 ### ps.pull([number], callback)
@@ -161,29 +149,6 @@ ps.pull(5, function(err, data) {
 
 ps.write('Hello World');
 ps.end();
-```
-
-<a name="pullStreamReconfigure" />
-### ps.reconfigure([options])
-
-Reconfigure the [until-stream](https://github.com/EvanOxfeld/until-stream) module  options. It's unwise
-to call this method while piping to a destination stream.
-
-__Arguments__
-
-* options (optional)
-    * pattern - String or Buffer If provided, PullStream will stop reads or pipes when reached
-
-__Example__
-
-```javascript
-var ps = new PullStream();
-var outputStream = fs.createWriteStream(path.join(__dirname, 'loremIpsum.out'));
-
-ps.write("Hello\nWorld");
-ps.reconfigure({ pattern: '\n' });
-ps.pipe(outputStream); //pipe "Hello" to outputStream
-ps.reconfigure(); //remove pattern
 ```
 
 ## License

@@ -4,14 +4,18 @@ module.exports = PullStream;
 
 require("setimmediate");
 var inherits = require("util").inherits;
-var UntilStream = require('until-stream');
+var PassThrough = require('stream').PassThrough;
 var over = require('over');
 var SliceStream = require('slice-stream');
+
+if (!PassThrough) {
+  PassThrough = require('readable-stream/passthrough');
+}
 
 function PullStream(opts) {
   var self = this;
   this.opts = opts || {};
-  UntilStream.call(this, opts);
+  PassThrough.call(this, opts);
   this.once('finish', function() {
     self._writesFinished = true;
     if (self._flushed) {
@@ -22,7 +26,7 @@ function PullStream(opts) {
     self._process();
   });
 }
-inherits(PullStream, UntilStream);
+inherits(PullStream, PassThrough);
 
 PullStream.prototype.pull = over([
   [over.numberOptionalWithDefault(null), over.func, function (len, callback) {
@@ -62,7 +66,7 @@ PullStream.prototype.pullUpTo = over([
 PullStream.prototype.pipe = over([
   [over.numberOptionalWithDefault(null), over.object, function (len, destStream) {
     if (!len) {
-      return UntilStream.prototype.pipe.call(this, destStream);
+      return PassThrough.prototype.pipe.call(this, destStream);
     }
 
     if (len === 0) {
