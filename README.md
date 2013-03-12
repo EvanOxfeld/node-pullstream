@@ -38,6 +38,7 @@ ps.pull(5, function(err, data) {
  * [pipe](#pullStreamPipe)
  * [write](#pullStreamWrite)
  * [end](#pullStreamEnd)
+ * [prepend](#pullStreamPrepend)
 
 # API Documentation
 
@@ -148,6 +149,25 @@ ps.pull(5, function(err, data) {
 });
 
 ps.write('Hello World');
+ps.end();
+```
+
+<a name="pullStreamPrepend" />
+### ps.prepend()
+
+Writes data to the front of the input side of a pull stream.
+
+__Example__
+
+```javascript
+var ps = new PullStream();
+
+ps.pull(11, function(err, data) {
+  console.log(data.toString());
+});
+
+ps.write('World');
+ps.prepend('Hello ');
 ps.end();
 ```
 

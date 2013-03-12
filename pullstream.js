@@ -97,6 +97,10 @@ PullStream.prototype._process = function () {
   }
 };
 
+PullStream.prototype.prepend = function (chunk) {
+  this.unshift(chunk);
+}
+
 PullStream.prototype._flush = function (callback) {
   var self = this;
   if (this._readableState.length > 0) {
