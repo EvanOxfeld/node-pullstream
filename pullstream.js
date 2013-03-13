@@ -95,10 +95,10 @@ PullStream.prototype._process = function () {
   }
 };
 
-PullStream.prototype._flush = function (outputFn, callback) {
+PullStream.prototype._flush = function (callback) {
   var self = this;
   if (this._readableState.length > 0) {
-    return setImmediate(self._flush.bind(self, outputFn, callback));
+    return setImmediate(self._flush.bind(self, callback));
   }
 
   this._flushed = true;
