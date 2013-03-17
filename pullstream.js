@@ -6,6 +6,7 @@ require("setimmediate");
 var inherits = require("util").inherits;
 var UntilStream = require('until-stream');
 var over = require('over');
+var SliceStream = require('slice-stream');
 
 function PullStream(opts) {
   var self = this;
@@ -18,9 +19,6 @@ function PullStream(opts) {
     }
   });
   this.on('readable', function() {
-    self._process();
-  });
-  this.on('drain', function() {
     self._process();
   });
 }
@@ -71,19 +69,19 @@ PullStream.prototype.pipe = over([
       return destStream.end();
     }
 
-    var self = this;
-    pipeServiceRequest();
 
-    function pipeServiceRequest() {
-      self._serviceRequests = null;
-      var data = self.read(len);
-      if (data) {
-        destStream.write(data);
-        destStream.end();
-      } else {
-        self._serviceRequests = pipeServiceRequest;
-      }
-    }
+    var pullstream = this;
+    pullstream
+      .pipe(new SliceStream({ length: len }, function (buf, sliceEnd, extra) {
+        if (!sliceEnd) {
+          return this.push(buf);
+        }
+        pullstream.unpipe();
+        pullstream.unshift(extra);
+        this.push(buf);
+        return this.push(null);
+      }))
+      .pipe(destStream);
 
     return destStream;
   }]
