@@ -89,8 +89,7 @@ console.log(data.toString('utf8'));
 ### ps.pipe([number], destStream)
 
 Pipes the specified number of bytes to destStream. If a number is not specified pipe will pipe the remainder
-of the input stream to destStream. If a number is not specified and a pattern is given, pipe will pipe the
-input stream to destStream until the pattern is reached. Back-pressure is properly managed.
+of the input stream to destStream. Back-pressure is properly managed.
 
 __Arguments__
 
