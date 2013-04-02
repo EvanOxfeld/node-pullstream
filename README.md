@@ -36,6 +36,7 @@ ps.pull(5, function(err, data) {
  * [pull](#pullStreamPull)
  * [pullUpTo](#pullStreamPullUpTo)
  * [pipe](#pullStreamPipe)
+ * [drain](#pullStreamDrain)
  * [write](#pullStreamWrite)
  * [end](#pullStreamEnd)
  * [prepend](#pullStreamPrepend)
@@ -108,6 +109,22 @@ var outputStream = fs.createWriteStream(path.join(__dirname, 'loremIpsum.out'));
 
 ps.pipe(100, out).on('end', function() {
   console.log('done with pipe');
+});
+```
+
+<a name="pullStreamDrain" />
+### ps.drain(number, callback)
+
+Consume the specified number of bytes and send them to nowhere. Also drains from upstream as necessary if the specified
+number of bytes is less than the length of the pull stream's internal buffer.
+
+__Example__
+
+```javascript
+var ps = new PullStream();
+
+ps.drain(5, function(err) {
+  console.log('5 bytes removed from pull stream');
 });
 ```
 

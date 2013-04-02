@@ -99,7 +99,24 @@ PullStream.prototype._process = function () {
 
 PullStream.prototype.prepend = function (chunk) {
   this.unshift(chunk);
-}
+};
+
+PullStream.prototype.drain = function (len, callback) {
+  if (this._flushed) {
+    return callback(new Error('End of Stream'));
+  }
+
+  var data = this.pullUpTo(len);
+  var bytesDrained = data && data.length || 0;
+  if (bytesDrained === len) {
+     process.nextTick(callback);
+  } else if (bytesDrained > 0) {
+    this.drain(len - bytesDrained, callback);
+  } else {
+    //internal buffer is empty, wait until data can be consumed
+    this.once('readable', this.drain.bind(this, len - bytesDrained, callback));
+  }
+};
 
 PullStream.prototype._flush = function (callback) {
   var self = this;

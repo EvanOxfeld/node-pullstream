@@ -404,5 +404,26 @@ module.exports = {
       sourceStream.destroy();
       t.done();
     });
+  },
+
+  "drain": function (t) {
+    t.expect(1);
+    var ps = new PullStream();
+
+    var sourceStream = new streamBuffers.ReadableStreamBuffer();
+
+    sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
+
+    ps.drain('Hello '.length, function (err) {
+      if (err) {
+        return t.done(err);
+      }
+      ps.pull('World!'.length, function (err, data) {
+        t.equal('World!', data.toString());
+        sourceStream.destroy();
+        t.done();
+      });
+    });
   }
 };
