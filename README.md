@@ -174,7 +174,7 @@ ps.end();
 
 (The MIT License)
 
-Copyright (c) 2012 Near Infinity Corporation
+Copyright (c) 2012 - 2013 Near Infinity Corporation
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
