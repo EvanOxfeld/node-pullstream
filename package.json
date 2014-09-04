@@ -19,14 +19,14 @@
     "pull"
   ],
   "devDependencies": {
-    "nodeunit": "~0.7.4",
-    "stream-buffers": "~0.2.3",
-    "async": "~0.1.22"
+    "nodeunit": "^0.9.0",
+    "stream-buffers": "^0.2.5",
+    "async": "^0.9.0"
   },
   "dependencies": {
-    "over": "~0.0.5",
-    "readable-stream": "~1.0.0",
-    "setimmediate": "~1.0.1",
+    "over": "^0.0.5",
+    "readable-stream": "^1.1.13",
+    "setimmediate": "^1.0.2",
     "slice-stream": "0.0.0"
   }
 }
