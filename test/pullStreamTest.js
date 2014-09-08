@@ -19,9 +19,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 1
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
@@ -60,9 +60,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
@@ -105,11 +105,11 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
+
+    sourceStream.pipe(ps);
     values.forEach(function(val) {
       sourceStream.put(val);
     });
-
-    sourceStream.pipe(ps);
 
     async.forEachSeries(values, function (val, callback) {
       ps.pull(4, function (err, data) {
@@ -135,9 +135,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
@@ -160,12 +160,11 @@ module.exports = {
     var ps = new PullStream({ lowWaterMark : 0 });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
-      frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull(0, function (err, data) {
       if (err) {
@@ -210,12 +209,12 @@ module.exports = {
     });
 
     var sourceStream = new streamBuffers.ReadableStreamBuffer({
-      frequency: 0,
+      frequency: 1,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello World!'.length, function (err, data) {
       if (err) {
@@ -295,9 +294,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 40 * 1024
     });
-    sourceStream.put(aVals);
 
     sourceStream.pipe(ps);
+    sourceStream.put(aVals);
 
     var writableStream = new streamBuffers.WritableStreamBuffer({
       initialSize: 200 * 1000
@@ -322,9 +321,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
@@ -346,9 +345,10 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
+
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
@@ -370,9 +370,9 @@ module.exports = {
       frequency: 0,
       chunkSize: 1000
     });
-    sourceStream.put("Hello World!");
 
     sourceStream.pipe(ps);
+    sourceStream.put("Hello World!");
 
     ps.pull('Hello'.length, function (err, data) {
       if (err) {
