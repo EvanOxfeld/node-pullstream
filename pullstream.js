@@ -4,13 +4,9 @@ module.exports = PullStream;
 
 require("setimmediate");
 var inherits = require("util").inherits;
-var PassThrough = require('stream').PassThrough;
+var PassThrough = require('readable-stream/passthrough');
 var over = require('over');
 var SliceStream = require('slice-stream');
-
-if (!PassThrough) {
-  PassThrough = require('readable-stream/passthrough');
-}
 
 function PullStream(opts) {
   var self = this;
@@ -133,11 +129,6 @@ PullStream.prototype._flush = function (callback) {
 };
 
 PullStream.prototype._finish = function (callback) {
-  // force end() event to be emitted
-  // read from stream when EOF, to comply with new stream behavior in 0.11
-  // see https://github.com/joyent/node/commit/993bb93e0a58279bba482c40da9a114cfd467f55
-
-  this.read();
   callback = callback || function () {};
   if (this._serviceRequests) {
     this._serviceRequests();

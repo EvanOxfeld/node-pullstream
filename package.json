@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "over": "^0.0.5",
-    "readable-stream": "^1.1.13",
+    "readable-stream": "~1.0.31",
     "setimmediate": "^1.0.2",
-    "slice-stream": "0.0.0"
+    "slice-stream": "^1.0.0"
   }
 }
