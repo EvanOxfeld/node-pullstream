@@ -27,5 +27,8 @@
     "over": ">= 0.0.5 < 1",
     "readable-stream": "^2.0.2",
     "slice-stream": ">= 1.0.0 < 2"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
   }
 }
