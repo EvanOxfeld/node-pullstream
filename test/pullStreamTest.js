@@ -249,10 +249,10 @@ module.exports = {
 
     ps.pipe(writableStream);
 
-    process.nextTick(function () {
+    setImmediate(function () {
       ps.write(new Buffer('Hello', 'utf8'));
       ps.write(new Buffer(' World', 'utf8'));
-      process.nextTick(function () {
+      setImmediate(function () {
         ps.write(new Buffer('!', 'utf8'));
         ps.end();
       });
@@ -309,7 +309,7 @@ module.exports = {
 
     ps.once('drain', function () {
       ps.pipe(200 * 1000, writableStream);
-      process.nextTick(sourceStream.put.bind(null, bVals));
+      setImmediate(sourceStream.put.bind(null, bVals));
     });
   },
 
