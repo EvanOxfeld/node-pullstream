@@ -4,7 +4,7 @@
   "description": "A stream you can pull data from.",
   "main": "pullstream.js",
   "scripts": {
-    "test": "nodeunit test"
+    "test": "tap test"
   },
   "license": "MIT",
   "bugs": {
@@ -19,9 +19,9 @@
     "pull"
   ],
   "devDependencies": {
-    "nodeunit": ">= 0.9.0 < 1",
     "stream-buffers": ">= 0.2.6 < 1",
-    "async": ">= 0.9.0 <"
+    "async": ">= 0.9.0 <",
+    "tap": "^1.4.1"
   },
   "dependencies": {
     "over": ">= 0.0.5 < 1",
