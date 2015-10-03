@@ -2,7 +2,6 @@
 
 module.exports = PullStream;
 
-require("setimmediate");
 var inherits = require("util").inherits;
 var PassThrough = require('readable-stream/passthrough');
 var over = require('over');
